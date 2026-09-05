@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Cuenta vinculada</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --fondo: #f6f7f9;
+    --tarjeta: #ffffff;
+    --texto: #1a1c1f;
+    --tenue: #5c636b;
+    --borde: #dfe3e8;
+    --acento: #3b5bdb;
+    --acento-texto: #ffffff;
+    --ok: #2b8a3e;
+    --error: #c92a2a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fondo: #16181c;
+      --tarjeta: #1f2226;
+      --texto: #e8eaed;
+      --tenue: #9aa1a9;
+      --borde: #343a40;
+      --acento: #748ffc;
+      --acento-texto: #10131a;
+      --ok: #69db7c;
+      --error: #ff8787;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    background: var(--fondo);
+    color: var(--texto);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main {
+    width: 100%;
+    max-width: 520px;
+    background: var(--tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: 14px;
+    padding: 28px 24px 24px;
+  }
+  h1 { font-size: 1.35rem; margin: 0 0 6px; letter-spacing: -0.01em; }
+  h1 .marca { color: var(--ok); }
+  p { margin: 0 0 16px; color: var(--tenue); }
+  p.principal { color: var(--texto); }
+  ol { margin: 0 0 20px; padding-left: 22px; color: var(--texto); }
+  li { margin-bottom: 6px; }
+  #codigo {
+    width: 100%;
+    font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    padding: 12px;
+    border: 1px solid var(--borde);
+    border-radius: 9px;
+    background: var(--fondo);
+    color: var(--texto);
+    resize: vertical;
+    min-height: 84px;
+    word-break: break-all;
+  }
+  .acciones { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  button, .boton {
+    flex: 1 1 auto;
+    min-width: 160px;
+    padding: 13px 18px;
+    border-radius: 9px;
+    border: 1px solid var(--acento);
+    background: var(--acento);
+    color: var(--acento-texto);
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .boton.secundario {
+    background: transparent;
+    color: var(--acento);
+  }
+  .nota { font-size: 0.86rem; margin: 18px 0 0; }
+  .error h1 { color: var(--error); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main id="tarjeta">
+  <div id="exito" hidden>
+    <h1><span class="marca">✓</span> Listo, ya autorizaste el acceso</h1>
+    <p class="principal">Falta un último paso, y lo tenés que hacer vos:</p>
+    <ol>
+      <li>Tocá <strong>Copiar código</strong>.</li>
+      <li>Pegáselo por mensaje a quien te mandó este link.</li>
+    </ol>
+    <textarea id="codigo" readonly aria-label="Código de autorización"></textarea>
+    <div class="acciones">
+      <button id="copiar" type="button">Copiar código</button>
+      <a id="whatsapp" class="boton secundario" href="#" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+    </div>
+    <p class="nota">Este código sirve una sola vez y vence en minutos. Solo da acceso de
+      lectura a las estadísticas de tu cuenta: no permite publicar, borrar ni leer mensajes.
+      Podés revocarlo cuando quieras desde Instagram, en Configuración → Apps y sitios web.</p>
+  </div>
+
+  <div id="error" class="error" hidden>
+    <h1>No se completó la autorización</h1>
+    <p class="principal" id="error-detalle"></p>
+    <p>Si fue sin querer, volvé a abrir el link que te pasaron y tocá <strong>Permitir</strong>.
+      Si preferís no autorizar, no hace falta que hagas nada más.</p>
+  </div>
+
+  <div id="vacio" hidden>
+    <h1>Página de retorno</h1>
+    <p class="principal">Acá vuelve Instagram después de autorizar el acceso a las estadísticas
+      de una cuenta.</p>
+    <p>Si llegaste por tu cuenta, no hay nada que hacer en esta página.</p>
+  </div>
+</main>
+
+<script>
+(function () {
+  var parametros = new URLSearchParams(location.search);
+  var code = parametros.get("code");
+  var error = parametros.get("error");
+
+  function mostrar(id) {
+    document.getElementById(id).hidden = false;
+  }
+
+  if (code) {
+    var campo = document.getElementById("codigo");
+    campo.value = code;
+    document.getElementById("whatsapp").href =
+      "https://wa.me/?text=" + encodeURIComponent("Código de Instagram: " + code);
+
+    document.getElementById("copiar").addEventListener("click", function () {
+      var boton = this;
+      campo.select();
+      campo.setSelectionRange(0, campo.value.length);
+      var listo = function () {
+        boton.textContent = "Copiado ✓";
+        setTimeout(function () { boton.textContent = "Copiar código"; }, 2500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(campo.value).then(listo, function () {
+          document.execCommand("copy");
+          listo();
+        });
+      } else {
+        document.execCommand("copy");
+        listo();
+      }
+    });
+    mostrar("exito");
+  } else if (error) {
+    document.getElementById("error-detalle").textContent =
+      parametros.get("error_description") || error;
+    mostrar("error");
+  } else {
+    mostrar("vacio");
+  }
+})();
+</script>
+</body>
+</html>
